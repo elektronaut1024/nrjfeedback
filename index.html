@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<link rel="stylesheet" type="text/css" href="css/chart.css"> 
+	<script src='https://cdn.firebase.com/v0/firebase.js'></script>
+	<script data-main="js/main" src="js/require.js"></script>
+	<script type="text/javascript">
+		requirejs.config({
+		    baseUrl: "js/",
+		    paths: {
+		    	d3: 'libs/d3',
+		    	jquery: 'libs/jquery-2.0.3'
+		    },
+		    shim: {
+		    	d3: {
+		    		deps: [],
+		    		exports: 'd3'
+		    	}
+		    }
+		});
+	</script>
+</head>
+<body>
+
+</body>
+</html>
