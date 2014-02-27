@@ -1,0 +1,25 @@
+body {
+	font: 10px sans-serif;
+}
+
+#layout {
+	display:table;
+	width:100%;
+}
+
+#layout > * {
+	display:table-cell;
+	vertical-align: top;
+}
+
+#chart {
+	width:100%;
+}
+
+#control {
+	width:300px;
+}
+
+#control label {
+	display:block;
+}

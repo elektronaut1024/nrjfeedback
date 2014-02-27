@@ -1,5 +1,5 @@
 define(['d3'],function(d3){
-	return function Chart(data,wattsUnit){
+	return function Chart(data,wattsUnit,dateFormat){
 		var margin = {
 			top : 20,
 			right : 20,
@@ -14,8 +14,8 @@ define(['d3'],function(d3){
 		
 		function updateDomain(data){
 			x.domain([
-				data.min.time,
-				data.max.time
+				new Date(data.min.time),
+				new Date(data.max.time)
 			]);
 			
 			y.domain([
@@ -29,22 +29,22 @@ define(['d3'],function(d3){
 		var xAxis = d3.svg.axis()
 			.scale(x)
 			.orient("bottom")
-			.tickFormat(d3.time.format("%H:%M:%S"))
+			.tickFormat(dateFormat)
 		;
 	
 		var yAxis = d3.svg.axis().scale(y).orient("left");
 	
 		var line = d3.svg.line()
-			.interpolate('basxis')
+			//.interpolate('basis')
 			.x(function(d) {
-				return x(d.maxTime);
+				return x(d.date);
 			})
 			.y(function(d) {
 				return y(d.watts);
 			})
 		;
 	
-		var svg = d3.select("body").append("svg")
+		var svg = d3.select("#chart").append("svg")
 			.attr("width",width + margin.left + margin.right)
 			.attr("height",height + margin.top + margin.bottom)
 			.append("g").attr("transform","translate(" + margin.left + "," + margin.top + ")")
@@ -71,6 +71,10 @@ define(['d3'],function(d3){
 			.datum(data.list)
 			.attr("d", line)
 		;
+		
+		this.remove = function(){
+			d3.select("#chart svg").remove();
+		};
 		
 		this.update = function(data){
 			updateDomain(data);

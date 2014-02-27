@@ -2,6 +2,7 @@
 <html>
 <head>
 	<link rel="stylesheet" type="text/css" href="css/chart.css"> 
+	<link rel="stylesheet" type="text/css" href="css/layout.css"> 
 	<script src='https://cdn.firebase.com/v0/firebase.js'></script>
 	<script data-main="js/main" src="js/require.js"></script>
 	<script type="text/javascript">
@@ -9,9 +10,12 @@
 		    baseUrl: "js/",
 		    paths: {
 		    	d3: 'libs/d3',
-		    	jquery: 'libs/jquery-2.0.3'
+		    	jQuery: 'libs/jquery-2.0.3'
 		    },
 		    shim: {
+		    	jQuery: {
+		    		exports: 'jQuery'
+		    	},
 		    	d3: {
 		    		deps: [],
 		    		exports: 'd3'
@@ -21,6 +25,44 @@
 	</script>
 </head>
 <body>
-
+	<div id="layout">
+		<form id="control">
+			<label>
+				Wrap:
+				<select name="wrap">
+					<option value="hourly">hourly</option>
+					<option value="daily">daily</option>
+					<option value="weekly">weekly</option>
+					<option value="yearly">yearly</option>
+					<option value="continuous">continuous</option>
+				</select>
+			</label>
+			<label>
+				Group by:
+				<select name="groupBy">
+					<option value="hour">hour</option>
+					<option value="minute">minute</option>
+					<option value="second">second</option>
+					<option value="millisecond">millisecond</option>
+				</select>
+			</label>
+			<label>
+				Modulo:
+				<input name="modulo" type="text">
+			</label>
+			<label class="curves">
+				<button name="add">+</button>
+				Curves:
+				<ul>
+					<li>
+						<button name="remove">-</button>
+						<input name="time-start" type="text" placeholder="start">
+						<input name="time-end" type="text" placeholder="end">
+					</li>
+				</ul>
+			</label>
+		</form>
+		<div id="chart"></div>
+	</div>
 </body>
 </html>

@@ -1,214 +1,346 @@
 define(['d3'],function(d3){
-	
-	function hourly(t,mod){
-		var d = new Date(t);
-		d.setMinutes(0);
-		d.setSeconds(0);
-		d.setMilliseconds(0);
 		
-		var hours = d.getHours();
-		hours -= hours % mod;
-		d.setHours(hours);
+	return function Collector(){
+		var self=this;
 		
-		return d;
-	}
-	
-	function minutely(t,mod){
-		var d = new Date(t);
-		d.setSeconds(0);
-		d.setMilliseconds(0);
+		this.data = null;
+		this.timeDelta = 0;
 		
-		var mins = d.getMinutes();
-		mins -= mins % mod;
+		var groupBy = function(){
+			throw new Error('no grouping');
+		};		
 		
-		d.setMinutes(mins);
-		return d;
-	}
-	
-	function millisecondly(t,mod){
-		var d = new Date(t);
-		
-		var milli = d.getMilliseconds();
-		milli -= milli % mod;
-		
-		d.setMilliseconds(milli);
-		return d;
-	}
-	
-	function secondly(t,mod){
-		var d = new Date(t);
-		d.setMilliseconds(0);
-		
-		var seconds = d.getSeconds();
-		seconds -= seconds % mod;
-		
-		d.setSeconds(seconds);
-		return d;
-	}
-	
-	function rollup(list,timeFunction){
-		var data = {
-			list: null,
-			min: {
-				time:null,
-				watts:null,
-			},
-			max: {
-				time:null,
-				watts:null,
-			}
+		var wrap = function(){
+			throw new Error('not wrapped');
 		};
 		
-		function updateMinMax(time,watts){
-			data.min.time = data.min.time===null?time:Math.min(data.min.time,time);
-			data.min.watts = data.min.watts===null?watts:Math.min(data.min.watts,watts);
-			
-			data.max.time = Math.max(data.max.time,time);
-			data.max.watts = Math.max(data.max.watts,watts);
+		this.timeFormat = function(){
+			throw new Error('no format');
 		};
 		
-		function create(time,watts,maxTime){
+		function create(date,watts){
 			return {
-				"time":time,
-				"watts":watts,
-				"maxTime":maxTime
+				date: date,
+				watts: watts
 			};
 		};
 		
-		function groupList(){
-			var rolled = d3.nest()
-				.key(function(d){
-					return timeFunction(d.time).getTime();
-				})
-				.rollup(function(leaves){
-					var time = timeFunction(d3.min(leaves,function(d){
-						return d.time;
-					}));
-					
-					var maxTime = d3.max(leaves,function(d){
-						return d.time;
-					});
-					
-					var watts = d3.sum(leaves,function(d){
-						return d.watts;
-					});
-					
-					updateMinMax(maxTime,watts);
-					
-					return create(time,watts,maxTime);
-				})
-				.entries(list)
-			;
-			
-			data.list = new Array();
-			
-			rolled.forEach(function(element){
-				data.list.push(element.values);
-			});
+		function wrapIdx(wrappedDate){
+			return (wrappedDate.getTime()-self.data.min.time)/self.timeDelta;
 		}
 		
-		function sortList(){
-			data.list = data.list.sort(function(a,b){
-				return d3.ascending(a.time.getTime(),b.time.getTime());
-			});
-		}
+		function initContinuousData(){
+			self.data = {
+				list: new Array(),
+				min: {
+					time:null,
+					watts:null,
+				},
+				max: {
+					time:null,
+					watts:null,
+				}
+			};
+		};
 		
-		groupList();
-		sortList();
+		function initWrappedData(min,max){
+			var delta = self.timeDelta;
+			
+			var list = new Array();
+			for ( var t=min;t<max;t+=delta ) {
+				var d = create(new Date(t),0);
+				d.iterations = 0;
+				d.realWatts = 0;
+				
+				list.push(d);
+			}
+			
+			self.data = {
+				list: list,
+				min: {
+					time:min,
+					watts:null,
+				},
+				max: {
+					time:max,
+					watts:null,
+				}
+			};
+		};
 		
-		var prev = data.list[data.list.length-2];
-		var last = data.list[data.list.length-1];
-		var delta = last.time - prev.time;
+		this.wrap = {
+			continuous: function(){
+				self.add = addContinuous;
+				wrap = function continuous(d){
+					throw new Error('is continuous');
+				};
+				
+				initContinuousData();
+			},
+			yearly: function(){
+				var current = new Date();
+				var y = current.getFullYear();
+				
+				self.add = addWrapped;
+				
+				wrap = function yearly(d){
+					var w = new Date(d); 
+					w.setYear(y);
+					return w;
+				};
+				
+				initWrappedData(current.getTime(),current.getTime()+364*24*60*60*1000);
+			},
+			weekly: function(){
+				var current = new Date(2013,6,1); //The first of July in 2013 was a Sunday 
+				var y = current.getFullYear();
+				var m = current.getMonth();
+				
+				self.add = addWrapped;
+				
+				wrap = function weekly(d){
+					var w = new Date(d);
+					w.setYear(y);
+					w.setMonth(m);
+					w.setDate(((d.getDay()+6)%7)+1);
+					
+					return w;
+				};
+				
+				initWrappedData(current.getTime(),current.getTime()+7*24*60*60*1000);
+			},
+			daily: function(){
+				var current = new Date(2013,6,1);
+				var y = current.getFullYear();
+				var m = current.getMonth();
+				var t = current.getDate();
+				
+				self.add = addWrapped;
+				
+				wrap = function daily(d){
+					var w = new Date(d); 
+					
+					w.setYear(y);
+					w.setMonth(m);
+					w.setDate(t);
+					
+					return w;
+				};
+				
+				initWrappedData(current.getTime(),current.getTime()+24*60*60*1000);
+			},
+			hourly: function(){
+				var current = new Date(2013,6,1);
+				var y = current.getFullYear();
+				var m = current.getMonth();
+				var t = current.getDate();
+				
+				self.add = addWrapped;
+				
+				wrap = function daily(d){
+					var w = new Date(d); 
+					
+					w.setYear(y);
+					w.setMonth(m);
+					w.setDate(t);
+					w.setHours(0);
+					
+					return w;
+				};
+				
+				initWrappedData(current.getTime(),current.getTime()+60*60*1000);
+			},
+		};
+		
+		var weekFormat = d3.time.format("%a");
+		var dayFormat = d3.time.format("%d. %b %Y");
+		var hourFormat = d3.time.format("%H:%M");
+		
+		var defaultTimeFormat = function(d){
+			if ( new Date(d).getHours() == 0 ) {
+				if ( wrap.name == 'weekly' ) return weekFormat(d);
+				
+				return dayFormat(d);
+			}
+			
+			return hourFormat(d);
+		};
+		
+		this.groupBy = {
+			hour: function(mod){
+				if ( !mod ) mod = 1;
+				
+				self.timeDelta = 60*60*1000*mod;
+								
+				groupBy = function hour(t){
+					var d = new Date(t);
+					d.setMinutes(0);
+					d.setSeconds(0);
+					d.setMilliseconds(0);
+					
+					var hours = d.getHours();
+					hours -= hours % mod;
+					d.setHours(hours);
+					
+					return d;
+				};
+				
+				self.timeFormat = defaultTimeFormat;
+			},
+			minute: function(mod){
+				if ( !mod ) mod = 1;
+				
+				self.timeDelta = 60*1000*mod;
+				
+				groupBy = function minute(t){
+					var d = new Date(t);
+					d.setSeconds(0);
+					d.setMilliseconds(0);
+					
+					var mins = d.getMinutes();
+					mins -= mins % mod;
+					
+					d.setMinutes(mins);
+					return d;
+				};
+				
+				self.timeFormat = defaultTimeFormat;
+			},
+			
+			second: function(mod){
+				if ( !mod ) mod = 1;
+				
+				self.timeDelta = 1000*mod;
+				
+				groupBy = function second(t){
+					var d = new Date(t);
+					d.setMilliseconds(0);
+					
+					var seconds = d.getSeconds();
+					seconds -= seconds % mod;
+					
+					d.setSeconds(seconds);
+					return d;
+				};
+				
+				self.timeFormat = d3.time.format("%H:%M:%S");
+			},
+			
+			millisecond: function(mod){
+				if ( !mod ) mod = 1;
+				
+				self.timeDelta = mod;
+				
+				groupBy = function millisecond(t){
+					var d = new Date(t);
+					
+					var milli = d.getMilliseconds();
+					milli -= milli % mod;
+					
+					d.setMilliseconds(milli);
+					return d;
+				};
+				
+				self.timeFormat = d3.time.format("%H:%M:%S:%L");
+			}
+		};
 		
 		var realWatts = 0;
+		var current = null;
+		var prev = null;
 		
 		function applyProjectedWatts(watts){
 			realWatts += watts;
-			last.watts = realWatts+prev.watts*(1-(last.maxTime-last.time)/delta);
-			//last.watts = realWatts;
+			if ( prev ) {
+				var ratio = (current.maxTime-current.date.getTime())/self.timeDelta;
+				
+				current.watts = realWatts+prev.watts*(1-ratio);
+			} else { 
+				current.watts = realWatts;
+			}
+			
+			current.watts = realWatts;
 		}
 		
-		applyProjectedWatts(last.watts);
-		
-		
-		data.shift = function(){
-			var first = data.list.shift();
-			data.min.time = data.list[0].time;
+		function shift(){
+			var first = self.data.list.shift();
+			self.data.min.time = self.data.list[0].date.getTime();
 			
 			return first;
 		};
 		
-		data.add = function(realTime,watts){
-			time = timeFunction(realTime);
+		function minimax(f,a,b){
+			return a === null?b:f(a,b);
+		}
+		
+		function addContinuous(realTime,watts){
+			var date = groupBy(realTime);
 			
-			if ( last.time.getTime() == time.getTime() ) {
-				last.maxTime = Math.max(last.maxTime,realTime);
+			if ( current && current.date.getTime() == date.getTime() ) {
+				current.maxTime = Math.max(current.maxTime,realTime);
 				applyProjectedWatts(watts);
 			} else {
-				last.watts = realWatts;
+				var next = create(date,watts);
+				next.maxTime = realTime;
 				
-				var next = create(time,watts,realTime);
-				
-				console.log(new Date(last.time),delta,new Date(next.time));
-				
-				if ( last.time + delta < next.time ) {
-					var bridgeStart = create(last.time+delta,0,last.time+2*delta-1);
-					var bridgeEnd = create(next.time-delta,0,next.time-1);
+				if ( current ) {
+					current.watts = realWatts;
 					
-					data.list.push(bridgeStart);
-					data.list.push(bridgeEnd);
-					
-					last = bridgeEnd;
-				}
+					var t1 = current.date.getTime();
+					var t2 = next.date.getTime();
+				
+					if ( t2-t1 > self.timeDelta ) {
+						current = create(groupBy(t1+self.timeDelta),0);
+						current.maxTime = t1+2*self.timeDelta-1;
 						
-				prev = last;
-				last = next;
+						self.data.list.push(current);
+						
+						if ( t2-t1 > 2*self.timeDelta ) {
+							current = create(groupBy(t2-self.timeDelta),0);
+							current.maxTime = t2-1;
+							
+							self.data.list.push(current);
+						}
+					};
+					
+					prev = current;
+				}
+				
+				current = next;
 				
 				realWatts = 0;
 				applyProjectedWatts(watts);
 				
-				data.list.push(last);
+				self.data.list.push(current);
 			}
 			
-			updateMinMax(realTime,watts);
+			self.data.min.watts = minimax(Math.min,self.data.min.watts,realWatts);
+			self.data.max.watts = minimax(Math.max,self.data.max.watts,realWatts);
+			
+			self.data.min.time = minimax(Math.min,self.data.min.time,current.date.getTime());
+			self.data.max.time = minimax(Math.max,self.data.max.time,current.date.getTime());
 		};
 		
-		return data;
-	}
-	
-	return {
-		rollup : rollup,
-		groupBy : {
-			hour: function hour(mod){
-				if ( !mod ) mod = 1;
-				
-				return function(t){
-					return hourly(t,mod);
-				};
-			},
-			minute: function minute(mod){
-				if ( !mod ) mod = 1;
-				
-				return function(t){
-					return minutely(t,mod);
-				};
-			},
+		function addWrapped(realTime,watts){
+			var date = groupBy(realTime);
+			var wrappedDate = wrap(date);
+			var wrappedIdx = wrapIdx(wrappedDate);
 			
-			second: function second(mod){
-				if ( !mod ) mod = 1;
-				
-				return function(t){
-					return secondly(t,mod);
-				};
-			},
+			var existing = self.data.list[wrappedIdx];
+			if ( !existing ) throw new Error('wrapped index ('+ wrappedIdx +') for wrapped date ('+ wrappedDate.toString() +') does not exist');
+			existing.realWatts += watts;
 			
-			millisecond: function millisecond(mod){
-				if ( !mod ) mod = 1;
-				
-				return function(t){
-					return millisecondly(t,mod);
-				};
-			},
+			if ( !existing.last || existing.last.getTime() != date.getTime() ) {
+				existing.last = date; //this only works, if the previous unwrapped but grouped time will never occur again (sorted adds) 
+				existing.iterations++;
+			}
+			
+			existing.watts = existing.realWatts / existing.iterations;
+			
+			self.data.min.watts = minimax(Math.min,self.data.min.watts,existing.watts);
+			self.data.max.watts = minimax(Math.max,self.data.max.watts,existing.watts);
 		}
+		
+		
 	};
 });

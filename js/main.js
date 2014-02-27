@@ -1,62 +1,59 @@
-require(['d3','Chart','DataCollector'],function(d3,Chart,Collector){
-	d3.json('feed.json',function(d){
-		var feed = new Array();
-		function descend(d){
-			if ( !d ) return;
+require(['d3','jQuery','Chart','Control','DataCollector','Feed'],function(d3,$,Chart,Control,Collector,Feed){
+	var chart = null;
+	
+	function draw(config){
+		if ( chart ) chart.remove();
+		
+		var collector = new Collector();
+		var mod = parseInt(config.modulo);
+		collector.groupBy[config.groupBy](mod);
+		collector.wrap[config.wrap]();
+		//collector.timeWindow = parseInt(config.timeWindow)*collector.timeDelta;
+		
+		var fileFormat = d3.time.format('feed/%Y.%m.%d.json');
+		
+		var files = [];
+		var start = new Date(2013,10,26), end = new Date(2013,11,13);
+		
+		while ( start <= end ) {
+			files.push(fileFormat(start));
+			start.setDate(start.getDate()+1);
+		}
+		
+		function processFile(){
+			var file = files.shift();
 			
-			if ( d.ts ) {
-				for( var i=0; i<d.times.length; i++) {
-					feed.push({
-						time:d.ts*1000+d.times[i],
-						watts:1
-					});
-				}
+			console.log(file);
+			
+			if ( file ) {
+				d3.json(file,function(json){
+					var feed = Feed(json);
+					for( var i=0;i<feed.length;i++) collector.add(feed[i],1);
+					
+					processFile();
+				});
 			} else {
-				if ( d instanceof Array ) {
-					for ( var i=0; i<d.length; i++ ) {
-						descend(d[i]);
-					}
-				} else {
-					for ( var key in d ) {
-						descend(d[key]);
-					}
-				}
+				showChart();
 			}
 		}
-		descend(d);
 		
-		feed = feed.sort(function(a,b){
-			return d3.ascending(a.time,b.time);
-		});
+		processFile();
 		
-		var offset = 5250;
-		var inputList = feed.slice(offset);
-		var startList = feed.slice(0,offset);
-		
-		var timeWindow = 24*60*60*1000;
-		
-		var groupBy = Collector.groupBy.second;
-		var mod = 1;
-		
-		var data = Collector.rollup(startList,groupBy(mod));
-		
-		var chart = new Chart(data,mod +' '+ groupBy.name);
-		
-		var int = setInterval(function(){
-			var value = inputList.shift();
-			
-			if ( inputList.length <= 0 ) clearInterval(int);
-			
-			data.add(value.time,value.watts);
-			if ( timeWindow ) {
-				while ( data.max.time - data.min.time > timeWindow ) {
-					data.shift();
-				}
-			}
-			
-			chart.update(data);
-		},1000);
+		function showChart(){
+			chart = new Chart(
+				collector.data,
+				config.modulo +' '+config.groupBy,
+				collector.timeFormat
+			);
+		}
+	};
+	
+	$control = $('#control');
+	$control.on('nrjfb.change',function(event,config){
+		draw(config);
 	});
+	
+	new Control($control);
 	
 	
 	/*

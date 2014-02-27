@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<link rel="stylesheet" type="text/css" href="css/chart.css"> 
+	<link rel="stylesheet" type="text/css" href="css/layout.css"> 
+	<script src='https://cdn.firebase.com/v0/firebase.js'></script>
+	<script data-main="js/current" src="js/require.js"></script>
+	<script type="text/javascript">
+		requirejs.config({
+		    baseUrl: "js/",
+		    paths: {
+		    	d3: 'libs/d3',
+		    	jQuery: 'libs/jquery-2.0.3'
+		    },
+		    shim: {
+		    	jQuery: {
+		    		exports: 'jQuery'
+		    	},
+		    	d3: {
+		    		deps: [],
+		    		exports: 'd3'
+		    	}
+		    }
+		});
+	</script>
+</head>
+<body>
+	<h1 id="currentUsage">
+		<p>Current Consumption: <em></em> Watts/h</p>
+	</h1>
+	<div id="layout">
+		<div id="chart"></div>
+	</div>
+</body>
+</html>
