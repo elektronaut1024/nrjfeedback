@@ -7,7 +7,7 @@ require(['d3','jQuery','Chart','Control','DataCollector','Feed'],function(d3,$,C
 	var config = {
 		groupBy:'second',
 		wrap:'continuous',
-		modulo:20
+		modulo:30
 	};
 	
 	var factor = 60*(60/config.modulo);
@@ -23,7 +23,7 @@ require(['d3','jQuery','Chart','Control','DataCollector','Feed'],function(d3,$,C
 		
 		collector.data.list.pop(); //skip last because it might not be complete
 		
-		if ( chart ) {		
+		if ( chart ) {
 			chart.update(collector.data);
 		} else {
 			chart = new Chart(
@@ -45,6 +45,6 @@ require(['d3','jQuery','Chart','Control','DataCollector','Feed'],function(d3,$,C
 	};
 	
 	var myDataRef = new Firebase('https://nrjfeed.firebaseio.com/feed/');
-	query = myDataRef.endAt().limit(50);
+	query = myDataRef.endAt().limit(3000);
 	query.on('child_added', addData);
 });
