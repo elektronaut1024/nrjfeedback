@@ -1,45 +1,23 @@
-require(['d3','jQuery','Chart','Control','DataCollector','Feed'],function(d3,$,Chart,Control,Collector,Feed){
+require(['d3','jQuery','Chart','Control','DataCollector','Feed','bootstrap'],function(d3,$,Chart,Control,Collector,Feed){
 	var chart = null;
+	var newData = new Array();
 	
-	function draw(config){
-		if ( chart ) chart.remove();
-		
+	var config = null;
+	
+	function update(){
 		var collector = new Collector();
-		var mod = parseInt(config.modulo);
-		collector.groupBy[config.groupBy](mod);
+		collector.groupBy[config.groupBy](config.modulo);
 		collector.wrap[config.wrap]();
-		//collector.timeWindow = parseInt(config.timeWindow)*collector.timeDelta;
 		
-		var fileFormat = d3.time.format('feed/%Y.%m.%d.json');
-		
-		var files = [];
-		var start = new Date(2013,10,26), end = new Date(2013,11,13);
-		
-		while ( start <= end ) {
-			files.push(fileFormat(start));
-			start.setDate(start.getDate()+1);
+		for( var i=0;i<newData.length; i++) {
+			collector.add(newData[i],1);
 		}
 		
-		function processFile(){
-			var file = files.shift();
-			
-			console.log(file);
-			
-			if ( file ) {
-				d3.json(file,function(json){
-					var feed = Feed(json);
-					for( var i=0;i<feed.length;i++) collector.add(feed[i],1);
-					
-					processFile();
-				});
-			} else {
-				showChart();
-			}
-		}
+		collector.data.list.pop(); //skip last because it might not be complete
 		
-		processFile();
-		
-		function showChart(){
+		if ( chart ) {
+			chart.update(collector.data);
+		} else {
 			chart = new Chart(
 				collector.data,
 				config.modulo +' '+config.groupBy,
@@ -48,18 +26,26 @@ require(['d3','jQuery','Chart','Control','DataCollector','Feed'],function(d3,$,C
 		}
 	};
 	
+	var timeout = null;
+	function addData(snapshot) {
+		newData = newData.concat(Feed(snapshot.val()));
+		if ( timeout ) clearTimeout(timeout);
+		timeout = setTimeout(update,100);
+	};
+	
+	var myDataRef = new Firebase('https://nrjfeed.firebaseio.com/feed/');
+	
 	$control = $('#control');
-	$control.on('nrjfb.change',function(event,config){
-		draw(config);
+	$control.on('nrjfb.change',function(event,newConfig){
+		if ( chart ) {
+			chart.remove();
+			chart = null;
+		}
+		config = newConfig;
+		
+		query = myDataRef.endAt().limit(10000);
+		query.on('child_added', addData);
 	});
 	
 	new Control($control);
-	
-	
-	/*
-	var myDataRef = new Firebase('https://nrjfeed.firebaseio.com/feed/2013/11/27/');
-	myDataRef.on('child_added', function(snapshot) {
-		descend(snapshot.val());
-	});
-	*/
 });

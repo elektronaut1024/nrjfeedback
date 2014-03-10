@@ -11,9 +11,11 @@
 		    baseUrl: "js/",
 		    paths: {
 		    	d3: 'libs/d3',
-		    	jQuery: 'libs/jquery-2.0.3'
+		    	jQuery: 'libs/jquery-2.0.3',
+		    	bootstrap: 'bootstrap'
 		    },
 		    shim: {
+		    	bootstrap: ['jQuery'],
 		    	jQuery: {
 		    		exports: 'jQuery'
 		    	},
@@ -24,58 +26,63 @@
 		    }
 		});
 	</script>
-	<script src="js/bootstrap.js"></script>
 </head>
 <body>
-	<div id="layout" class="row">
-		<div class="col-sm-2">
-			<form class="form" id="control">
-				<div class="form-group">
-					<label>Wrap</label>
-					<select class="form-control" name="wrap">
-						<option value="hourly">hourly</option>
-						<option value="daily">daily</option>
-						<option value="weekly">weekly</option>
-						<option value="yearly">yearly</option>
-						<option value="continuous">continuous</option>
-					</select>
-				</div>
-				<div class="form-group">
-					<label>Group by</label>
-					<select class="form-control" name="groupBy">
-						<option value="hour">hour</option>
-						<option value="minute">minute</option>
-						<option value="second">second</option>
-						<option value="millisecond">millisecond</option>
-					</select>
-				</div>
-				<div class="form-group">
-					<label>Modulo</label>
-					<input class="form-control" name="modulo" type="text">
-				</div>
-				<div class="curves">
-					<button class="btn btn-default" name="add">+</button>
-					Curves:
-					<ul class="list-unstyled">
-						<li>
-							<div class="row">
-								<div class="col-sm-2">
-									<button class="btn btn-default" name="remove">-</button>
+	<div class="container-fluid">
+		<div id="layout" class="row">
+			<div class="col-sm-2">
+				<form class="form" id="control">
+					<div class="form-group">
+						<label>Wrap</label>
+						<select class="form-control" name="wrap">
+							<option value="hourly">hourly</option>
+							<option value="daily">daily</option>
+							<option value="weekly">weekly</option>
+							<option value="yearly">yearly</option>
+							<option value="continuous">continuous</option>
+						</select>
+					</div>
+					<div class="form-group">
+						<label>Group by</label>
+						<select class="form-control" name="groupBy">
+							<option value="hour">hour</option>
+							<option value="minute">minute</option>
+							<option value="second">second</option>
+							<option value="millisecond">millisecond</option>
+						</select>
+					</div>
+					<div class="form-group">
+						<label>Modulo</label>
+						<input class="form-control" name="modulo" type="text">
+					</div>
+					<div class="curves">
+						<button class="btn btn-default" name="add">
+							<span class="glyphicon glyphicon-plus"></span>
+						</button>
+						Curves:
+						<ul class="list-unstyled">
+							<li>
+								<div class="row">
+									<div class="col-sm-2">
+										<button class="btn btn-default" name="remove">
+											<span class="glyphicon glyphicon-remove"></span>
+										</button>
+									</div>
+									<div class="col-sm-5">
+										<input class="col-sm-4 form-control" name="time-start" type="text" placeholder="start">
+									</div>
+									<div class="col-sm-5">
+										<input class="col-sm-4 form-control" name="time-end" type="text" placeholder="end">
+									</div>
 								</div>
-								<div class="col-sm-5">
-									<input class="col-sm-4 form-control" name="time-start" type="text" placeholder="start">
-								</div>
-								<div class="col-sm-5">
-									<input class="col-sm-4 form-control" name="time-end" type="text" placeholder="end">
-								</div>
-							</div>
-						</li>
-					</ul>
-				</div>
-			</form>
-		</div>
-		<div class="col-sm-10">
-			<div id="chart"></div>
+							</li>
+						</ul>
+					</div>
+				</form>
+			</div>
+			<div class="col-sm-10">
+				<div id="chart"></div>
+			</div>
 		</div>
 	</div>
 </body>

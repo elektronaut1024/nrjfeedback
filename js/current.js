@@ -45,6 +45,6 @@ require(['d3','jQuery','Chart','Control','DataCollector','Feed'],function(d3,$,C
 	};
 	
 	var myDataRef = new Firebase('https://nrjfeed.firebaseio.com/feed/');
-	query = myDataRef.endAt().limit(3000);
+	query = myDataRef.endAt().limit(300);
 	query.on('child_added', addData);
 });
